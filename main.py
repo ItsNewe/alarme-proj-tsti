@@ -3,54 +3,53 @@ import argparse
 import sys
 from logging.handlers import HTTPHandler
 import logging
-
-##VARIABLES GLOBALES 
-logger=None
-logFormatter=None
-parser=None
-args=None
+import click
 
 ##INIT
 #Mise en place du logger
 def initLogger():
 	try:
 		logger = logging.getLogger() #Logger console
-		logger.setlevel(logging.INFO) #Définition du niveau de log par défaut, pour que les erreurs pendant l'init puissent être affichées
-
+		logger.setLevel(logging.DEBUG) #Définition du niveau de log par défaut, pour que les erreurs pendant l'init puissent être affichées
+		
 		logFormatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s') #Formatteur qui gère la mise en page des logs
-		logger.formatter(logFormatter)
-
+		
+		termLogger = logging.StreamHandler(sys.stdout)
+		termLogger.setLevel(logging.DEBUG)
+		termLogger.setFormatter(logFormatter)
+		logger.addHandler(termLogger)
 		#Mise en place du logger HTTP, qui va envoyer des logs sur un endpoint défini du site
 		netLogger = HTTPHandler(host='blog.newe.space', url='/api/logger', method="POST", secure=True, credentials=('a','b',))
 		netLogger.setLevel(logging.ERROR)
-		netLogger.formatter(logFormatter)
-
 		logger.addHandler(netLogger)
-
-		return True
+		logger.debug('Initialisation du logger terminée')
+		return logger
 
 	except(Exception) as e:
 		print(f"Une erreur est survenue lors de l'initialisation du logger: Traceback:\n{e}")
 		sys.exit(0)
 
 #Init du parser, qui gère les paramètres CLI
-def initParser():
-	try:
-		parser = argparse.ArgumentParser()
-		parser.add_argument("--test", help="Déclenche l'alarme pendant 10 secondes.")
-		parser.add_argument("--test-all", help="Déclenche l'alarme pendant 10 secondes, sur tous les systèmes.")
-		parser.add_argument("-v", help="Augmente la verbosité")
-		args = parser.parse_args()
+def initParser(l):
 
-	except(Exception) as e:
-		logger.ERROR(f"Une erreur est survenue lors de l'initialisation du parser: Traceback:\n{e}")
-		sys.exit(0)
+	@click.command()
+	@click.option('-v', is_flag=True, help="Augmente la verbosité")
+	def verboseFlag(v, l=l):
+		if(v):
+			click.echo(f"Niveau de logging défini sur verbose")
+			l.setLevel(logging.DEBUG)
+	
+	@click.command()
+	@click.option('-t', is_flag=True, help="Déclenche l'alarme pendant 10 secondes.")
+	def testAlarm(t):
+		if(t):
+			print('dring')
 
+	#verboseFlag()
+	#testAlarm()
 #Initialisation des éléments de l'alarme via GPIO
 def initGPIO():
 	return False
-
-
 
 #Création du gérant de signal, en cas de fermeture forcée
 def signalHandler(sig, frame):
@@ -68,9 +67,11 @@ signal.signal(signal.SIGINT, signalHandler)
 
 ##COEUR DU PROGRAMME
 if __name__ == "__main__":
-	initLogger()
-	initParser()
-	if(args.v):
-		logger.setLevel(logging.DEBUG)
-	else:
-		logger.setLevel(logging.INFO)
+	print(f"{'='*24}\n\tDémarrage\n{'='*24}")
+	print("Initialisation du logger...")
+	logger = initLogger()
+	logger.debug("Initialisation du parser...")
+	initParser(logger)
+	logger.debug("Initialisation du GPIO...")
+	initGPIO()
+	logger.info("Tous les modules ont étés initialisés!")
