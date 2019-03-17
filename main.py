@@ -4,6 +4,8 @@ import sys
 from logging.handlers import HTTPHandler
 import logging
 import click
+from gpiozero import MCP3008
+import time
 
 ##INIT
 #Mise en place du logger
@@ -12,7 +14,7 @@ def initLogger():
 		logger = logging.getLogger() #Logger console
 		logger.setLevel(logging.DEBUG) #Définition du niveau de log par défaut, pour que les erreurs pendant l'init puissent être affichées
 		
-		logFormatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s') #Formatteur qui gère la mise en page des logs
+		logFormatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s', "%H:%M:%S") #Formatteur qui gère la mise en page des logs
 		
 		termLogger = logging.StreamHandler(sys.stdout)
 		termLogger.setLevel(logging.DEBUG)
@@ -44,12 +46,24 @@ def initParser(l):
 	def testAlarm(t):
 		if(t):
 			print('dring')
-
-	#verboseFlag()
-	#testAlarm()
+	
+	@click.command()
+	@click.option('-s', is_flag=True, help="Ignore le préchauffage des composants")
+	def testAlarm(t):
+		return
+			
 #Initialisation des éléments de l'alarme via GPIO
-def initGPIO():
-	return False
+def initGPIO(l):
+	mq3 = MCP3008(0)
+	cptPoussiere = MCP3008(1)
+
+	l.info('Composants GPIO initialisés, 5 minutes de préchauffage vont maintenant démarrer...')
+	a=0
+	while a!=300:
+		print(300-a)
+		a+=1
+		time.sleep(1)
+	return mq3, cptPoussiere
 
 #Création du gérant de signal, en cas de fermeture forcée
 def signalHandler(sig, frame):
@@ -67,11 +81,14 @@ signal.signal(signal.SIGINT, signalHandler)
 
 ##COEUR DU PROGRAMME
 if __name__ == "__main__":
-	print(f"{'='*24}\n\tDémarrage\n{'='*24}")
+	print("{0}\n\tDémarrage\n{0}".format('='*24))
 	print("Initialisation du logger...")
 	logger = initLogger()
-	logger.debug("Initialisation du parser...")
-	initParser(logger)
+	#logger.debug("Initialisation du parser...")
+	#initParser(logger)
 	logger.debug("Initialisation du GPIO...")
-	initGPIO()
+	mq3, cptPoussiere = initGPIO(logger)
 	logger.info("Tous les modules ont étés initialisés!")
+	while True:
+		print("MQ3= {}, Poussiere = {}".format(mq3.value, cptPoussiere.value))
+		time.sleep(5)
