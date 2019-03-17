@@ -6,6 +6,7 @@ import logging
 import click
 from gpiozero import MCP3008
 import time
+import requests
 
 ##INIT
 #Mise en place du logger
@@ -28,29 +29,8 @@ def initLogger():
 		return logger
 
 	except(Exception) as e:
-		print(f"Une erreur est survenue lors de l'initialisation du logger: Traceback:\n{e}")
+		print("Une erreur est survenue lors de l'initialisation du logger: Traceback:\n{}".format(e))
 		sys.exit(0)
-
-#Init du parser, qui gère les paramètres CLI
-def initParser(l):
-
-	@click.command()
-	@click.option('-v', is_flag=True, help="Augmente la verbosité")
-	def verboseFlag(v, l=l):
-		if(v):
-			click.echo(f"Niveau de logging défini sur verbose")
-			l.setLevel(logging.DEBUG)
-	
-	@click.command()
-	@click.option('-t', is_flag=True, help="Déclenche l'alarme pendant 10 secondes.")
-	def testAlarm(t):
-		if(t):
-			print('dring')
-	
-	@click.command()
-	@click.option('-s', is_flag=True, help="Ignore le préchauffage des composants")
-	def testAlarm(t):
-		return
 			
 #Initialisation des éléments de l'alarme via GPIO
 def initGPIO(l):
@@ -84,11 +64,11 @@ if __name__ == "__main__":
 	print("{0}\n\tDémarrage\n{0}".format('='*24))
 	print("Initialisation du logger...")
 	logger = initLogger()
-	#logger.debug("Initialisation du parser...")
-	#initParser(logger)
+	logger.debug("Initialisation du parser...")
 	logger.debug("Initialisation du GPIO...")
 	mq3, cptPoussiere = initGPIO(logger)
 	logger.info("Tous les modules ont étés initialisés!")
 	while True:
 		print("MQ3= {}, Poussiere = {}".format(mq3.value, cptPoussiere.value))
+		requests.post("https://blog.newe.space/api/sensorsdata", data={'mq3': mq3.value, 'cptPoussiere': cptPoussiere.value})
 		time.sleep(5)
