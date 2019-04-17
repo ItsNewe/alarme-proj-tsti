@@ -41,11 +41,12 @@ def initLogger():
 		termLogger.setFormatter(logFormatter)
 		logger.addHandler(termLogger)
 		# Mise en place du logger HTTP, qui va envoyer des logs sur un endpoint défini du site
+		"""
 		netLogger = HTTPHandler(host='blog.newe.space', url='/api/logger',
 								method="POST", secure=True, credentials=('a', 'b',))
 		netLogger.setLevel(logging.ERROR)
 		logger.addHandler(netLogger)
-
+		"""
 		logging.getLogger("requests").setLevel(logging.DEBUG)
 		logger.debug('Initialisation du logger terminée')
 		return logger
@@ -129,7 +130,7 @@ def sendDiscordAlert(vals, p):
 	except(Exception) as e:
 		logger.error(e)
 
-
+#Conversions des valeurs brutes du détecteur de poussière en valeurs exploitables
 def pm25pcs2ugm3(pcs):
 	density = 1.65 * pow(10, 12)
 	r25 = 0.44 * pow(10, -6)
@@ -209,10 +210,10 @@ def warmq3(v): #Stabilisation du MQ3
 	R0 = RS_air/60.0
 
 	print("R0 = {}".format(R0))
-	#0.04522963285339522
+	#0.04522963285339522 >>valeur actuelle
 
-def triggerAlarm(stop=False, args):
-	if stop==False:
+def triggerAlarm(args, stop=False):
+	if stop==True:
 		return
 	else:
 		try:
